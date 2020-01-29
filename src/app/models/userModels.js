@@ -2,7 +2,7 @@ const mongoose = require('../../database/index')
 const bcrypt = require('bcryptjs')
 
 const UserScheme = new mongoose.Schema({
-    name: {
+    username: {
         type: String,
         required: true
     },
@@ -12,6 +12,8 @@ const UserScheme = new mongoose.Schema({
         required: true,
         lowercase: true
     },
+    bio: String,
+    avatar_url: String,
     password: {
         type: String,
         required: true,
@@ -34,7 +36,7 @@ const UserScheme = new mongoose.Schema({
         default: Date.now,
     },
 })
-UserScheme.pre('save', async function(next) {
+UserScheme.pre('save', async function (next) {
     const hash = await bcrypt.hash(this.password, 10)
     this.password = hash
     next()

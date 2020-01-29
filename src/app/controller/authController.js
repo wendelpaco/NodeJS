@@ -13,7 +13,7 @@ export default {
     async index(req, res) {
         try {
             const user = await User.find()
-            return res.send({ user })
+            return res.send(user)
         } catch (err) {
             return res.status(400).send({
                 debugMessage: err
@@ -27,7 +27,7 @@ export default {
             if (!user)
                 return res.status(400).send({ message: 'Usuário não encontrado' })
 
-            return res.send({ user })
+            return res.send({ users: user })
         } catch (err) {
             return res.status(400).send({
                 debugMessage: err
@@ -66,7 +66,7 @@ export default {
             if (!user)
                 return res.status(400).send({ message: 'Usuário não encontrado' })
             await user.remove()
-            return res.send()
+            return res.send({message: 'Usuário excluído com sucesso!'})
         } catch (err) {
             res.status(400).send({
                 debugMessage: err

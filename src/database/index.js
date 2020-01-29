@@ -1,3 +1,5 @@
+import 'dotenv/config'
+
 const mongoose = require('mongoose')
 
 const objMongo = { useNewUrlParser: true, useUnifiedTopology: true, useCreateIndex: true, useFindAndModify: false }

@@ -3,6 +3,7 @@ import User from '../models/userModels'
 import jwt from 'jsonwebtoken'
 import Mail from '../../lib/mailer'
 import crypto from 'crypto'
+import axios from 'axios'
 
 function generateToken(params = []) {
     return jwt.sign(params, process.env.JWT_SECRET, { expiresIn: 86400, })
@@ -18,28 +19,52 @@ export default {
 
     // grava um novo usuário
     async storeCadastro(req, res) {
-        const { name, email, password } = req.body
+        const { username, email, password } = req.body
+
         try {
-            if (await User.findOne({ email }))
-                return res.status(400).send({ trace: 'O e-mail já está sendo usado por outra pessoa.' })
 
-            const user = await User.create({
-                name,
-                email,
-                password,
-                createdAt: generateDateGMT(3),
-                updateAt: generateDateGMT(3)
-            })
+            const apiResponse = await axios.get(`https://api.github.com/users/${username}`)
+                .then(r => {
+                    if (r.status === 200) {
+                        return { statusCode: r.status, message: r.statusText, data: r.data }
+                    }
+                })
+                .catch(e => {
+                    if (e.status !== 200) {
+                        return { statusCode: e.response.status, message: e.response.data.message }
+                    }
+                })
 
-            await Mail.sendMail({
-                from: 'Fila Teste <wendelpaco@live.com>',
-                to: `${name} <${email}>`,
-                subject: 'Cadastro de Usuário',
-                html: `Olá, ${name}, seja bem vindo ao sistema de filas`
-            })
+            if (apiResponse.statusCode === 200) {
+                const { avatar_url, bio } = apiResponse.data
 
-            user.password = undefined
-            return res.status(201).send({ user, token: generateToken({ id: user.id }) })
+                if (await User.findOne({ email }))
+                    return res.send({ statusCode: 400, message: 'O e-mail já está sendo usado por outra pessoa.' })
+
+                if (await User.findOne({ username }))
+                    return res.send({ statusCode: 400, message: 'O usuário já está sendo usado por outra pessoa.' })
+
+                const user = await User.create({
+                    username,
+                    email,
+                    bio,
+                    avatar_url,
+                    password,
+                    createdAt: generateDateGMT(3),
+                    updateAt: generateDateGMT(3)
+                })
+
+                await Mail.sendMail({
+                    from: 'Fila Teste <wendelpaco@live.com>',
+                    to: `${username} <${email}>`,
+                    subject: 'Cadastro de Usuário',
+                    html: `Olá, ${username}, seja bem vindo ao sistema de filas`
+                })
+
+                user.password = undefined
+                return res.status(201).send({ user, token: generateToken({ id: user.id }), statusCode: 201 })
+            }
+            return res.send({ statusCode: apiResponse.statusCode, message: 'usuário não encontrado no github' })
         } catch (err) {
             return res.status(400).send({
                 debugMessage: err,
